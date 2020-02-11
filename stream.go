@@ -7,6 +7,7 @@
 package mjpeg
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,6 +21,7 @@ type Stream struct {
 	frame         []byte
 	lock          sync.Mutex
 	FrameInterval time.Duration
+	ctx           context.Context
 }
 
 const boundaryWord = "MJPEGBOUNDARY"
@@ -40,12 +42,21 @@ func (s *Stream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.m[c] = true
 	s.lock.Unlock()
 
+	if s.ctx == nil {
+		s.ctx = context.Background()
+	}
+
+FRAMELOOP:
 	for {
 		time.Sleep(s.FrameInterval)
-		b := <-c
-		_, err := w.Write(b)
-		if err != nil {
-			break
+		select {
+		case <-s.ctx.Done():
+			break FRAMELOOP
+		case b := <-c:
+			_, err := w.Write(b)
+			if err != nil {
+				break FRAMELOOP
+			}
 		}
 	}
 
@@ -71,10 +82,19 @@ func (s *Stream) UpdateJPEG(jpeg []byte) {
 		// This might need more thought.
 		select {
 		case c <- s.frame:
+		case <-s.ctx.Done():
+			break
 		default:
 		}
 	}
 	s.lock.Unlock()
+}
+
+// SetContext sets the context to be used for this stream.
+// You must set it before starting to serve the stream, or else
+// a context will be automatically created.
+func (s *Stream) SetContext(ctx context.Context) {
+	s.ctx = ctx
 }
 
 // NewStream initializes and returns a new Stream.
