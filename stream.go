@@ -42,6 +42,7 @@ func (s *Stream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.m[c] = true
 	s.lock.Unlock()
 
+	// if there is no external context, use the background context.
 	if s.ctx == nil {
 		s.ctx = context.Background()
 	}
@@ -90,18 +91,22 @@ func (s *Stream) UpdateJPEG(jpeg []byte) {
 	s.lock.Unlock()
 }
 
-// SetContext sets the context to be used for this stream.
-// You must set it before starting to serve the stream, or else
-// a context will be automatically created.
-func (s *Stream) SetContext(ctx context.Context) {
-	s.ctx = ctx
-}
-
 // NewStream initializes and returns a new Stream.
 func NewStream() *Stream {
 	return &Stream{
 		m:             make(map[chan []byte]bool),
 		frame:         make([]byte, len(headerf)),
 		FrameInterval: 50 * time.Millisecond,
+	}
+}
+
+// NewStreamWithContext initializes and returns a new Stream that uses a
+// external context to control stream termination.
+func NewStreamWithContext(ctx context.Context) *Stream {
+	return &Stream{
+		m:             make(map[chan []byte]bool),
+		frame:         make([]byte, len(headerf)),
+		FrameInterval: 50 * time.Millisecond,
+		ctx:           ctx,
 	}
 }
