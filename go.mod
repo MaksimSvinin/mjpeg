@@ -1,4 +1,4 @@
-module mjpeg
+module github.com/MaksimSvinin/mjpeg
 
 go 1.16
 
