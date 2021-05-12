@@ -77,6 +77,10 @@ func (s *Stream) UpdateJPEG(jpeg []byte) {
 	s.lock.Unlock()
 }
 
+func (s *Stream) SetFrameInterval(interval time.Duration) {
+	s.FrameInterval = interval
+}
+
 // NewStream initializes and returns a new Stream.
 func NewStream() *Stream {
 	return &Stream{
