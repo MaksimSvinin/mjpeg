@@ -42,7 +42,9 @@ func (s *Stream) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		time.Sleep(s.FrameInterval)
+		s.lock.Lock()
 		b := <-c
+		s.lock.Unlock()
 		_, err := w.Write(b)
 		if err != nil {
 			break
